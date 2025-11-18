@@ -11,8 +11,16 @@ import (
 )
 
 func TestMongoConnection(t *testing.T) {
-	uri := "mongodb://" + os.Getenv("MONGO_INITDB_ROOT_USERNAME") + ":" + os.Getenv("MONGO_INITDB_ROOT_PASSWORD") +
-		"@" + os.Getenv("MONGO_HOST") + ":" + os.Getenv("MONGO_PORT")
+	user := os.Getenv("MONGO_INITDB_ROOT_USERNAME")
+	pass := os.Getenv("MONGO_INITDB_ROOT_PASSWORD")
+	host := os.Getenv("MONGO_HOST")
+	port := os.Getenv("MONGO_PORT")
+
+	if user == "" || pass == "" || host == "" || port == "" {
+		t.Fatalf("Variables de entorno faltantes: user='%s', pass='%s', host='%s', port='%s'", user, pass, host, port)
+	}
+
+	uri := "mongodb://" + user + ":" + pass + "@" + host + ":" + port
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
