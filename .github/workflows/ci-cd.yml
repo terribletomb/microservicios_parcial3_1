@@ -28,6 +28,8 @@ jobs:
       MONGO_PASSWORD: secret
       MONGO_DB: librosdb
       MONGO_COLLECTION: libros
+      MONGO_HOST: localhost
+      MONGO_PORT: 27017
 
     steps:
       - name: Checkout
