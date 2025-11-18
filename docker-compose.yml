@@ -25,31 +25,7 @@ services:
     build: ./services/create-service
     container_name: create-service
     ports:
-      - "${CREATE_PORT}:8080"
-    environment:
-      MONGO_USER: ${MONGO_USER}
-      MONGO_PASSWORD: ${MONGO_PASSWORD}
-      MONGO_HOST: ${MONGO_HOST}
-      MONGO_PORT: ${MONGO_PORT}
-      MONGO_DB: ${MONGO_DB}
-      MONGO_COLLECTION: ${MONGO_COLLECTION}
-    restart: always
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - internal_net
-
-  read_service:
-    build: ./services/read-service
-    container_name: read-service
-    ports:
-      - "${READ_PORT}:8081"
+      - "${CREATE_PORT}:8081"
     environment:
       MONGO_USER: ${MONGO_USER}
       MONGO_PASSWORD: ${MONGO_PASSWORD}
@@ -69,11 +45,11 @@ services:
     networks:
       - internal_net
 
-  update_service:
-    build: ./services/update-service
-    container_name: update-service
+  read_service:
+    build: ./services/read-service
+    container_name: read-service
     ports:
-      - "${UPDATE_PORT}:8082"
+      - "${READ_PORT}:8082"
     environment:
       MONGO_USER: ${MONGO_USER}
       MONGO_PASSWORD: ${MONGO_PASSWORD}
@@ -87,6 +63,30 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8082/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal_net
+
+  update_service:
+    build: ./services/update-service
+    container_name: update-service
+    ports:
+      - "${UPDATE_PORT}:8084"
+    environment:
+      MONGO_USER: ${MONGO_USER}
+      MONGO_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_HOST: ${MONGO_HOST}
+      MONGO_PORT: ${MONGO_PORT}
+      MONGO_DB: ${MONGO_DB}
+      MONGO_COLLECTION: ${MONGO_COLLECTION}
+    restart: always
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8084/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5

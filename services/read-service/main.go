@@ -36,6 +36,6 @@ func main() {
 		_, _ = fmt.Fprintln(w, "OK")
 	})
 
-	fmt.Println("📘 Servicio READ corriendo en puerto 8081")
-	log.Fatal(http.ListenAndServe(":8081", nil))
+	fmt.Println("📘 Servicio READ corriendo en puerto 8082")
+	log.Fatal(http.ListenAndServe(":8082", nil))
 }

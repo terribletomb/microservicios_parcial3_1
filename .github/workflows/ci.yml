@@ -1,0 +1,143 @@
+name: CI/CD Microservicios CRUD
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build-test-push:
+    name: Build, Test, Scan y Push (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [create-service, read-service, update-service, delete-service]
+    env:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: secret
+      MONGO_DB: librosdb
+      MONGO_COLLECTION: libros
+      MONGO_HOST: localhost
+      MONGO_PORT: 27017
+    services:
+      mongo:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: secret
+        options: >
+          --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'" --health-interval=10s --health-timeout=5s --health-retries=5
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+      - name: Cache módulos Go
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - name: Esperar MongoDB
+        run: |
+          for i in {1..30}; do
+            nc -z localhost 27017 && exit 0
+            sleep 2
+          done
+          exit 1
+      - name: Instalar dependencias Go
+        run: |
+          cd services/${{ matrix.service }}
+          go mod download
+      - name: Ejecutar pruebas unitarias e integración
+        run: |
+          cd services/${{ matrix.service }}
+          go test -v -cover -coverprofile=coverage.out ./...
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: secret
+          MONGO_DB: librosdb
+          MONGO_COLLECTION: libros
+          MONGO_HOST: localhost
+          MONGO_PORT: 27017
+      - name: Subir reporte de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.service }}
+          path: services/${{ matrix.service }}/coverage.out
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Construir y pushear imagen Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/${{ matrix.service }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/microcrud-${{ matrix.service }}:latest
+            ghcr.io/${{ github.repository_owner }}/microcrud-${{ matrix.service }}:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USER }}/microcrud-${{ matrix.service }}:latest
+            ${{ secrets.DOCKERHUB_USER }}/microcrud-${{ matrix.service }}:${{ github.sha }}
+      - name: Escaneo de seguridad con Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/microcrud-${{ matrix.service }}:latest
+          format: table
+          exit-code: 0
+          ignore-unfixed: true
+
+  release:
+    name: Publicar Release
+    needs: build-test-push
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Descargar artefactos de cobertura
+        uses: actions/download-artifact@v4
+        with:
+          path: ./coverage
+      - name: Crear body del release
+        id: release_body
+        run: |
+          echo "# Reporte de Cobertura" > body.md
+          for f in ./coverage/*/coverage.out; do
+            echo "\n## $f" >> body.md
+            go tool cover -func=$f >> body.md || echo "No disponible" >> body.md
+          done
+          echo "\n# Imágenes Docker generadas" >> body.md
+          echo "- ghcr.io/${{ github.repository_owner }}/microcrud-create-service:latest" >> body.md
+          echo "- ghcr.io/${{ github.repository_owner }}/microcrud-read-service:latest" >> body.md
+          echo "- ghcr.io/${{ github.repository_owner }}/microcrud-update-service:latest" >> body.md
+          echo "- ghcr.io/${{ github.repository_owner }}/microcrud-delete-service:latest" >> body.md
+      - name: Publicar Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: body.md
+
+# Secretos necesarios:
+# - DOCKERHUB_USER: Usuario de DockerHub
+# - DOCKERHUB_TOKEN: Token de acceso de DockerHub
+# (GITHUB_TOKEN ya está disponible por defecto)
+
+# Instrucciones:
+# 1. Configura los secretos en GitHub: DOCKERHUB_USER y DOCKERHUB_TOKEN.
+# 2. Haz push a main/master o crea un PR para disparar el pipeline.
+# 3. Para publicar un release, crea un tag tipo v1.0.0 y haz push.
+# 4. Los artefactos de cobertura estarán disponibles en la sección de artefactos del workflow.
+# 5. Las imágenes se publicarán en GHCR y DockerHub con los tags indicados.

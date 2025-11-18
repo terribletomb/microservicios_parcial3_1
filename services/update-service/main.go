@@ -34,6 +34,6 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/libros/{id}", ctrl.ActualizarLibro).Methods("PUT")
 
-	fmt.Println("✏️ Servicio UPDATE corriendo en puerto 8082")
-	log.Fatal(http.ListenAndServe(":8082", router))
+	fmt.Println("✏️ Servicio UPDATE corriendo en puerto 8084")
+	log.Fatal(http.ListenAndServe(":8084", router))
 }
