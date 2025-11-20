@@ -39,7 +39,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"titulo\": \"El Señor de los Anillos\",\n    \"autor\": \"J.R.R. Tolkien\",\n    \"anio\": 1954\n}"
+                            "raw": "{\n    \"titulo\": \"Harry potter\",\n    \"autor\": \"J. K. Rowling\",\n    \"anio\": 1997\n}"
                         },
                         "url": {
                             "raw": "http://localhost:9001/libros",
@@ -96,7 +96,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"titulo\": \"El Señor de los Anillos (Edición Extendida)\",\n    \"autor\": \"J.R.R. Tolkien\",\n    \"anio\": 1965\n}"
+                            "raw": "{\n    \"titulo\": \"harry potter y la piedra filosofal\",\n    \"autor\": \"J. K. Rowling\",\n    \"anio\": 2000\n}"
                         },
                         "url": {
                             "raw": "http://localhost:9003/libros/{{libro_id}}",
